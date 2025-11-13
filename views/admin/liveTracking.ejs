@@ -1,0 +1,28 @@
+<h3>Live Bus Tracking</h3>
+<div id="map" style="height: 500px;"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+  const socket = io({ withCredentials: true });
+
+  let map = L.map("map").setView([15.8281, 78.0373], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+  const busIcon = L.icon({
+    iconUrl: "/images/bus.png",
+    iconSize: [45, 45]
+  });
+
+  const markers = {};
+
+  socket.on("receive-location", ({ busId, latitude, longitude }) => {
+    if (!markers[busId]) {
+      markers[busId] = L.marker([latitude, longitude], { icon: busIcon }).addTo(map);
+    } else {
+      markers[busId].setLatLng([latitude, longitude]);
+    }
+  });
+</script>

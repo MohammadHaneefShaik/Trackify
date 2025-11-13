@@ -1,0 +1,20 @@
+
+  /* 🎨 Style the default bus image icon (without changing JS) */
+  .leaflet-marker-icon[src*="bus.png"] {
+    border-radius: 50%;                /* make it round */
+    border: 3px solid white;           /* white border ring */
+    background: radial-gradient(circle at 30% 30%, #00b4d8, #0077b6);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);  /* depth shadow */
+    padding: 4px;                      /* inner spacing to make it balanced */
+    object-fit: cover;                 /* clean scaling */
+    width: 46px !important;            /* slightly larger and circular */
+    height: 46px !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  /* ✨ Optional: Add hover/animation effect */
+  .leaflet-marker-icon[src*="bus.png"]:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5);
+  }
+

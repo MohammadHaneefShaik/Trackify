@@ -1,0 +1,41 @@
+<div class="card p-4 shadow-lg border-0" style="max-width: 480px; margin: 2rem auto; border-radius: 16px;">
+  <h2 class="text-center mb-4 fw-bold text-brand"> Add Stop</h2>
+
+  <form action="/admin/stops/create" method="POST" class="add-stop-form">
+    <div class="mb-3">
+      <label class="form-label fw-semibold text-dark">Select Bus</label>
+      <div class="select-wrapper">
+        <select name="busId" class="form-select shadow-sm p-2" required>
+          <option value="">-- Choose Bus --</option>
+          <% buses.forEach(bus=> { %>
+            <option value="<%= bus._id %>">
+              <%= bus.busNumber %>
+            </option>
+            <% }) %>
+        </select>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold text-dark">Stop Name</label>
+      <input type="text" name="stopName" placeholder="Enter Stop Name" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold text-dark">Latitude</label>
+      <input type="number" step="any" name="latitude" placeholder="Enter Latitude" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold text-dark">Longitude</label>
+      <input type="number" step="any" name="longitude" placeholder="Enter Longitude" class="form-control" required>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label fw-semibold text-dark">Order</label>
+      <input type="number" name="order" placeholder="Enter Stop Order" class="form-control" required>
+    </div>
+
+    <button type="submit" class="btn btn-brand w-100 py-2"> Add Stop</button>
+  </form>
+</div>

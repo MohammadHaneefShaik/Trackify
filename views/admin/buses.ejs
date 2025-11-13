@@ -1,0 +1,67 @@
+<h2 class="text-center fw-bold mb-4" style="color: #0077b6;">🚌 All Registered Buses</h2>
+
+<div class="table-responsive shadow-lg p-3 rounded-4" style="background: #ffffff;">
+  <table class="table table-bordered table-hover align-middle text-center mb-0">
+    <thead style="background-color: #00b4d8; color: white;">
+      <tr>
+        <th>Bus No</th>
+        <th>Driver Name</th>
+        <th>Driver Email</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% buses.forEach(bus=> { %>
+        <tr style="transition: all 0.2s ease;">
+          <td>
+            <%= bus.busNumber %>
+          </td>
+          <td>
+            <%= bus.driver ? bus.driver.name : "<span style='color:#888;'>Unassigned</span>" %>
+          </td>
+          <td>
+            <%= bus.driver ? bus.driver.email : "<span style='color:#888;'>No Driver</span>" %>
+          </td>
+        </tr>
+        <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="text-center mt-4">
+  <a href="/admin/buses/create" class="btn fw-semibold px-4 py-2"
+    style="background-color: #00a5c6; color: #fff; border-radius: 10px; text-decoration: none;">
+    Add New Bus
+  </a>
+</div>
+
+<style>
+  .table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .table tbody tr:hover {
+    background-color: #e0f7fa;
+    transform: scale(1.01);
+  }
+
+  .table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .table td,
+  .table th {
+    border-color: #ddd !important;
+  }
+
+  @media (max-width: 600px) {
+
+    .table th,
+    .table td {
+      font-size: 14px;
+      padding: 8px;
+    }
+  }
+</style>

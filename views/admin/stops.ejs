@@ -1,0 +1,117 @@
+<h2 class="text-center mb-4 fw-bold text-brand">🚌 Bus-wise Stops</h2>
+
+<div class="bus-stops-container">
+  <% buses.forEach(bus=> { %>
+    <div class="bus-card shadow-sm">
+      <h4 class="bus-title">🚍 <%= bus.busNumber %>
+      </h4>
+
+      <% if (bus.stops.length===0) { %>
+        <p class="no-stops">No stops added yet.</p>
+        <% } else { %>
+          <div class="table-wrapper">
+            <table class="stops-table">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Stop Name</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% bus.stops.forEach(stop=> { %>
+                  <tr>
+                    <td>
+                      <%= stop.order %>
+                    </td>
+                    <td>
+                      <%= stop.stopName %>
+                    </td>
+                  </tr>
+                  <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <% } %>
+    </div>
+    <% }) %>
+</div>
+
+<div class="text-center mt-4">
+  <a href="/admin/stops/create" class="btn-add"> Add Stop</a>
+</div>
+
+<style>
+  .bus-stops-container {
+    display: grid;
+    gap: 20px;
+  }
+
+  .bus-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #ddd;
+    padding: 16px;
+    transition: transform 0.2s ease, box-shadow 0.3s ease;
+  }
+
+  .bus-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  }
+
+  .bus-title {
+    font-weight: 600;
+    color: #0077b6;
+    margin-bottom: 10px;
+  }
+
+  .table-wrapper {
+    max-height: 180px;
+    overflow-y: auto;
+    border-radius: 8px;
+  }
+
+  .stops-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+
+  .stops-table th {
+    background: #00a5c6;
+    color: #fff;
+    text-align: left;
+    padding: 8px;
+    position: sticky;
+    top: 0;
+  }
+
+  .stops-table td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .stops-table tr:hover {
+    background-color: #f1fbff;
+  }
+
+  .no-stops {
+    color: #777;
+    font-style: italic;
+  }
+
+  .btn-add {
+    display: inline-block;
+    background-color: #00a5c6;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .btn-add:hover {
+    background-color: #0077b6;
+  }
+</style>

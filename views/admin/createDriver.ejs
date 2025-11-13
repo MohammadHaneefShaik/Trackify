@@ -1,0 +1,35 @@
+<div class="container mt-5" style="max-width: 450px;">
+  <h3 class="text-center mb-4 text-brand fw-semibold">👨‍✈️ Add New Driver</h3>
+
+  <form method="POST" action="/admin/drivers/create" class="card p-4 shadow border-0 rounded-4">
+    <div class="mb-3">
+      <label class="form-label fw-semibold text-dark">Driver Name</label>
+      <input type="text" name="name" placeholder="Enter Driver Name" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold text-dark">Driver Email</label>
+      <input type="email" name="email" placeholder="Enter Driver Email" class="form-control" required>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label fw-semibold text-dark">Password</label>
+      <input type="password" name="password" placeholder="Enter Password" class="form-control" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold text-dark">Select Bus</label>
+      <div class="select-wrapper">
+        <select name="busId" class="form-select shadow-sm p-2" required>
+          <option value="">-- Choose Bus --</option>
+          <% buses.forEach(bus=> { %>
+            <option value="<%= bus._id %>">
+              <%= bus.busNumber %>
+            </option>
+            <% }) %>
+        </select>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-brand w-100 py-2 fw-semibold"> Add Driver</button>
+  </form>
+</div>

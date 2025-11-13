@@ -1,0 +1,109 @@
+<form action="/auth/signup" method="POST" class="card p-4 mx-auto shadow-sm"
+  style="max-width: 450px; margin-top: 40px;">
+  <h3 class="mb-4 text-center fw-semibold" style="color: #00a5c6;">Create Account</h3>
+
+  <!-- Basic Info -->
+  <input name="name" class="form-control mb-3" placeholder="Full Name" required />
+  <input name="email" class="form-control mb-3" placeholder="Email" required />
+  <input name="password" type="password" class="form-control mb-3" placeholder="Password" required />
+
+  <!-- Role Selection -->
+  <select name="role" id="role" class="form-select mb-3" required>
+    <option value="USER">User</option>
+    <option value="DRIVER">Driver</option>
+  </select>
+
+  <!-- Driver Fields -->
+  <div id="driver-fields" style="display: none;">
+    <input name="phone" class="form-control mb-3" placeholder="Driver Phone Number" />
+    <select name="assignedBus" class="form-select mb-3">
+      <option value="">-- Select Assigned Bus --</option>
+      <% buses.forEach(bus=> { %>
+        <% if (!bus.driver) { %>
+          <option value="<%= bus._id %>">
+            <%= bus.busNumber %>
+          </option>
+          <% } %>
+            <% }) %>
+    </select>
+  </div>
+
+  <!-- User Bus Fields -->
+  <div id="bus-fields" style="display: none;">
+    <select name="busName" id="busSelect" class="form-select mb-3">
+      <option value="">-- Select Your Bus --</option>
+      <% buses.forEach(bus=> { %>
+        <option value="<%= bus._id %>">
+          <%= bus.busNumber %>
+        </option>
+        <% }) %>
+    </select>
+  </div>
+
+  <!-- User Stop Fields -->
+  <div id="user-fields" style="display: none;">
+    <select name="stopName" id="stopSelect" class="form-select mb-3">
+      <option value="">-- Select Your Stop --</option>
+      <% stops.forEach(stop=> { %>
+        <option value="<%= stop._id %>" data-bus="<%= stop.busId || stop.bus %>">
+          <%= stop.stopName %>
+        </option>
+        <% }) %>
+    </select>
+  </div>
+
+  <!-- Submit -->
+  <button class="btn w-100 py-2" style="background-color: #00a5c6; color: #fff;">Signup</button>
+
+  <div class="text-center mt-3">
+    <a href="/auth/login" class="fw-semibold text-decoration-none" style="color: #00a5c6;">
+      Already have an account?
+    </a>
+  </div>
+</form>
+
+<script>
+  const role = document.getElementById("role");
+  const driverFields = document.getElementById("driver-fields");
+  const userFields = document.getElementById("user-fields");
+  const busFields = document.getElementById("bus-fields");
+  const busSelect = document.getElementById("busSelect");
+  const stopSelect = document.getElementById("stopSelect");
+
+  function toggleFields() {
+    if (role.value === "DRIVER") {
+      driverFields.style.display = "block";
+      busFields.style.display = "none";
+      userFields.style.display = "none";
+    } else if (role.value === "USER") {
+      driverFields.style.display = "none";
+      busFields.style.display = "block";
+      userFields.style.display = "block";
+    } else {
+      driverFields.style.display = "none";
+      busFields.style.display = "none";
+      userFields.style.display = "none";
+    }
+  }
+
+  // Filter stops when bus changes
+  busSelect?.addEventListener("change", () => {
+    const selectedBus = busSelect.value;
+    const allStops = Array.from(stopSelect.options);
+
+    allStops.forEach(opt => {
+      if (!opt.value) return; // keep default option
+      if (opt.dataset.bus === selectedBus) {
+        opt.style.display = "block";
+      } else {
+        opt.style.display = "none";
+      }
+    });
+
+    // Reset stop dropdown to default
+    stopSelect.value = "";
+  });
+
+  document.addEventListener("DOMContentLoaded", toggleFields);
+  role.addEventListener("change", toggleFields);
+</script>
