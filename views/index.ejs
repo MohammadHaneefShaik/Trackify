@@ -1,66 +1,268 @@
 <head>
   <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Font Awesome for Search Icon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 
+<h3 class="text-center mb-4 fw-bold text-brand">
+  Welcome <%= user?.name || "Guest" %>
+</h3>
+
 <% if (!user) { %>
-  <div class="alert alert-info text-center shadow-sm">
-    Please <a href="/auth/login" class="fw-semibold text-decoration-none">Login</a> to track buses.
+
+<div class="alert alert-info text-center shadow-sm">
+  Please <a href="/auth/login" class="fw-semibold text-decoration-none">Login</a> to track buses.
+</div>
+
+<% } else { %>
+
+<!-- 🔍 SEARCH BAR -->
+<div class="search-container mx-auto mb-3">
+  <i class="fa fa-search search-icon"></i>
+  <input type="text" id="busSearch" placeholder="Search Bus Number...">
+</div>
+
+<div class="card p-3 shadow-lg border-0 mb-4" style="border-radius: 16px;">
+  <h5 class="fw-semibold text-secondary mb-3">🚌 Select Bus</h5>
+
+  <div class="mb-3">
+    <label class="form-label fw-semibold text-dark">Bus Number:</label>
+    <select id="busSelect" class="form-select shadow-sm border-0 rounded-3 p-2">
+      <option value="">-- Choose Bus --</option>
+      <% buses.forEach(bus=> { %>
+        <option value="<%= bus._id %>">
+          <%= bus.busNumber %>
+        </option>
+      <% }) %>
+    </select>
   </div>
-  <% } else { %>
 
-    <div class="card p-3 shadow-lg border-0 mb-4" style="border-radius: 16px;">
-      <h5 class="fw-semibold text-secondary mb-3">🚌 Select Bus</h5>
+  <button id="viewBtn" class="btn w-100 py-2 fw-semibold text-white"
+    style="background-color: #00b4d8; border-radius: 10px;" disabled>
+    🚍 View Bus Location
+  </button>
+</div>
 
-      <div class="mb-3">
-        <label class="form-label fw-semibold text-dark">Bus Number:</label>
-        <select id="busSelect" class="form-select shadow-sm border-0 rounded-3 p-2">
-          <option value="">-- Choose Bus --</option>
-          <% buses.forEach(bus=> { %>
-            <option value="<%= bus._id %>">
-              <%= bus.busNumber %>
-            </option>
-            <% }) %>
-        </select>
-      </div>
+<div class="card p-3 shadow-lg border-0" style="border-radius: 16px;">
+  <h5 class="fw-semibold text-secondary mb-3">📍 Live Bus Tracking</h5>
+  <div id="map" data-stops='<%- JSON.stringify(stops) %>'
+    style="height: 450px; border-radius: 14px; border: 1px solid #ddd;" class="shadow-sm"></div>
+</div>
 
-      <button id="viewBtn" class="btn w-100 py-2 fw-semibold text-white"
-        style="background-color: #00b4d8; border-radius: 10px;" disabled>
-        🚍 View Bus Location
-      </button>
-    </div>
+<script>
+  const map = L.map("map").setView([15.8281, 78.0373], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-    <div class="card p-3 shadow-lg border-0" style="border-radius: 16px;">
-      <h5 class="fw-semibold text-secondary mb-3">📍 Live Bus Tracking</h5>
-      <div id="map" data-stops='<%- JSON.stringify(stops) %>'
-        style="height: 450px; border-radius: 14px; border: 1px solid #ddd;" class="shadow-sm"></div>
-    </div>
+  const stopsElement = document.getElementById("map");
+  const allStops = JSON.parse(stopsElement.dataset.stops || "[]");
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  const socket = io({ withCredentials: true });
+  let selectedBusId = null;
+  let marker = null;
+  let stopMarkers = [];
 
-    <script>
-      const map = L.map("map").setView([15.8281, 78.0373], 12);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
-}).addTo(map);
+  const busSelect = document.getElementById("busSelect");
+  const viewBtn = document.getElementById("viewBtn");
+  const busSearch = document.getElementById("busSearch");
 
-      const stopsElement = document.getElementById("map");
-      const allStops = JSON.parse(stopsElement.dataset.stops || "[]");
+  function clearStops() {
+    stopMarkers.forEach(m => map.removeLayer(m));
+    stopMarkers = [];
+  }
 
-      const socket = io({ withCredentials: true });
-      let selectedBusId = null;
-      let marker = null;
-      let stopMarkers = [];
+  function showStopsForBus(busId) {
+    clearStops();
+    const filteredStops = allStops.filter(stop => stop.busId === busId);
 
-      const busSelect = document.getElementById("busSelect");
-      const viewBtn = document.getElementById("viewBtn");
+    if (filteredStops.length === 0) {
+      showNotification("⚠️ No route stops found for this bus!");
+      return;
+    }
 
-      // 🧹 Clear old stop markers
-      function clearStops() {
-        stopMarkers.forEach(m => map.removeLayer(m));
-        stopMarkers = [];
+    filteredStops.forEach(stop => {
+      const stopMarker = L.marker([stop.latitude, stop.longitude], {
+        icon: L.icon({
+          iconUrl: "/images/stop.png",
+          iconSize: [30, 30],
+          iconAnchor: [15, 30]
+        })
+      })
+        .addTo(map)
+        .bindPopup(`<b>${stop.stopName}</b>`);
+
+      stopMarkers.push(stopMarker);
+    });
+
+    const group = L.featureGroup(stopMarkers);
+    map.fitBounds(group.getBounds().pad(0.2));
+  }
+
+  window.addEventListener("load", () => {
+    const savedBusId = localStorage.getItem("selectedBusId");
+    if (savedBusId) {
+      selectedBusId = savedBusId;
+      busSelect.value = savedBusId;
+      viewBtn.disabled = false;
+      showNotification("🚍 Tracking resumed for your last selected bus!");
+      showStopsForBus(savedBusId);
+    }
+  });
+
+  busSelect.onchange = (e) => {
+    selectedBusId = e.target.value.trim();
+    viewBtn.disabled = !selectedBusId;
+
+    if (marker) {
+      map.removeLayer(marker);
+      marker = null;
+    }
+    clearStops();
+  };
+
+  viewBtn.onclick = () => {
+    if (!selectedBusId) return alert("Select a bus first!");
+    localStorage.setItem("selectedBusId", selectedBusId);
+    showNotification("🚍 Tracking started!");
+    showStopsForBus(selectedBusId);
+  };
+
+  socket.on("receive-location", ({ busId, latitude, longitude }) => {
+    if (selectedBusId !== String(busId)) return;
+
+    if (!marker) {
+      marker = L.marker([latitude, longitude], {
+        icon: L.icon({
+          iconUrl: "/images/bus.png",
+          iconSize: [42, 42],
+          iconAnchor: [20, 42],
+        }),
+      }).addTo(map);
+    } else {
+      marker.setLatLng([latitude, longitude]);
+    }
+
+    map.setView([latitude, longitude], 15);
+
+    const filteredStops = allStops.filter(stop => stop.busId === selectedBusId);
+    const reachedStop = filteredStops.find(
+      stop =>
+        Math.abs(stop.latitude - latitude) < 0.0008 &&
+        Math.abs(stop.longitude - longitude) < 0.0008
+    );
+
+    if (reachedStop) {
+      showNotification(`🚌 Bus has reached <b>${reachedStop.stopName}</b>!`);
+    }
+  });
+
+  function showNotification(message) {
+    const popup = document.createElement("div");
+    popup.innerHTML = message;
+    popup.style.position = "fixed";
+    popup.style.bottom = "20px";
+    popup.style.right = "20px";
+    popup.style.background = "#00a5c6";
+    popup.style.color = "white";
+    popup.style.padding = "12px 18px";
+    popup.style.borderRadius = "10px";
+    popup.style.fontWeight = "500";
+    popup.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+    popup.style.zIndex = "9999";
+    popup.style.transition = "opacity 0.5s ease";
+    document.body.appendChild(popup);
+    setTimeout(() => {
+      popup.style.opacity = "0";
+      setTimeout(() => popup.remove(), 500);
+    }, 3000);
+  }
+
+  // 🔍 LIVE SEARCH FUNCTION
+  busSearch.addEventListener("keyup", () => {
+    const searchValue = busSearch.value.toLowerCase();
+
+    for (let option of busSelect.options) {
+      const busName = option.textContent.toLowerCase();
+
+      if (busName.includes(searchValue) || option.value === "") {
+        option.style.display = "";
+      } else {
+        option.style.display = "none";
       }
+    }
+  });
+</script>
+
+<% } %>
+
+<style>
+  /* 🔍 Search Bar Styling */
+  .search-container {
+    position: relative;
+    width: 90%;
+    max-width: 450px;
+  }
+
+  .search-container input {
+    width: 100%;
+    padding: 12px 40px;
+    border: 2px solid #00b4d8;
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .search-container input:focus {
+    border-color: #0096c7;
+    box-shadow: 0 4px 12px rgba(0, 150, 199, 0.3);
+  }
+
+  .search-icon {
+    position: absolute;
+    top: 53%;
+    left: 12px;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #00b4d8;
+  }
+
+  .leaflet-marker-icon[src*="bus.png"] {
+    border-radius: 50%;
+    border: 3px solid white;
+    background: radial-gradient(circle at 30% 30%, #00b4d8, #0077b6);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    padding: 4px;
+    object-fit: cover;
+    width: 46px !important;
+    height: 46px !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .leaflet-marker-icon[src*="bus.png"]:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5);
+  }
+
+  .leaflet-marker-icon[src*="stop.png"] {
+    border-radius: 50%;
+    border: 2px solid white;
+    background: radial-gradient(circle at 30% 30%, #ffd166, #fca311);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    padding: 3px;
+    width: 34px !important;
+    height: 34px !important;
+    object-fit: cover;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .leaflet-marker-icon[src*="stop.png"]:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  }
+</style>      }
 
       // 🚏 Show stops for a selected bus
       function showStopsForBus(busId) {
