@@ -118,7 +118,10 @@
 
   // Initialize Map
   const map = L.map("map").setView([15.8281, 78.0373], 13);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
 
   const busIcon = L.icon({
     iconUrl: "/images/bus.png",
