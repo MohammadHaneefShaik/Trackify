@@ -1,9 +1,6 @@
 <head>
   <script src="/socket.io/socket.io.js"></script>
 </head>
-<h3 class="text-center mb-4 fw-bold text-brand">
-  Welcome <%= user?.name || "Guest" %>
-</h3>
 
 <% if (!user) { %>
   <div class="alert alert-info text-center shadow-sm">
@@ -43,7 +40,10 @@
 
     <script>
       const map = L.map("map").setView([15.8281, 78.0373], 12);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+}).addTo(map);
 
       const stopsElement = document.getElementById("map");
       const allStops = JSON.parse(stopsElement.dataset.stops || "[]");
