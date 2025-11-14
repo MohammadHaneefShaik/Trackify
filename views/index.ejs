@@ -1,3 +1,4 @@
+
 <head>
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -21,25 +22,12 @@
       type="text" 
       id="searchBus" 
       class="form-control shadow-sm border-0 rounded-3 p-2"
-      placeholder="Search by bus number..."
+      placeholder="Search bus number..."
     />
   </div>
 
-  <!-- 🟦 Bus Dropdown -->
-  <div class="mb-3">
-    <label class="form-label fw-semibold text-dark">Bus Number:</label>
-    <select id="busSelect" class="form-select shadow-sm border-0 rounded-3 p-2">
-      <option value="">-- Choose Bus --</option>
-      <% buses.forEach(bus=> { %>
-        <option value="<%= bus._id %>"><%= bus.busNumber %></option>
-      <% }) %>
-    </select>
-  </div>
-
-  <button id="viewBtn" class="btn w-100 py-2 fw-semibold text-white"
-    style="background-color: #00b4d8; border-radius: 10px;" disabled>
-    🚍 View Bus Location
-  </button>
+  <!-- 🔵 Search Results List -->
+  <ul id="busResults" class="list-group shadow-sm" style="cursor: pointer;"></ul>
 </div>
 
 <!-- 🟩 Map Card -->
@@ -69,35 +57,61 @@
   let marker = null;
   let stopMarkers = [];
 
-  const busSelect = document.getElementById("busSelect");
-  const viewBtn = document.getElementById("viewBtn");
+  // bus list
+  const busList = <%- JSON.stringify(buses) %>;
 
-  // 🔍 LIVE SEARCH FILTER FOR DROPDOWN
+  const busResults = document.getElementById("busResults");
+
+  // 🔍 LIVE SEARCH (NO DROPDOWN)
   document.getElementById("searchBus").addEventListener("input", function () {
-    const query = this.value.toLowerCase();
-    const options = busSelect.querySelectorAll("option");
+    const query = this.value.toLowerCase().trim();
+    busResults.innerHTML = "";
 
-    options.forEach(opt => {
-      if (opt.value === "") return;
-      const text = opt.textContent.toLowerCase();
+    if (!query) return;
 
-      opt.style.display = text.includes(query) ? "block" : "none";
+    const filtered = busList.filter(bus =>
+      bus.busNumber.toLowerCase().includes(query)
+    );
+
+    if (filtered.length === 0) {
+      busResults.innerHTML = `<li class="list-group-item">No buses found</li>`;
+      return;
+    }
+
+    filtered.forEach(bus => {
+      const li = document.createElement("li");
+      li.className = "list-group-item fw-semibold";
+      li.textContent = bus.busNumber;
+      li.onclick = () => selectBus(bus._id, bus.busNumber);
+      busResults.appendChild(li);
     });
   });
 
-  // 🧹 Clear markers
+  // When user selects bus from results
+  function selectBus(busId, busNumber) {
+    selectedBusId = busId;
+    localStorage.setItem("selectedBusId", busId);
+
+    document.getElementById("searchBus").value = busNumber;
+    busResults.innerHTML = "";
+
+    showNotification(`🚍 Tracking started for <b>${busNumber}</b>`);
+    showStopsForBus(busId);
+  }
+
+  // remove markers
   function clearStops() {
     stopMarkers.forEach(m => map.removeLayer(m));
     stopMarkers = [];
   }
 
-  // 🚏 Show stops
+  // show stops
   function showStopsForBus(busId) {
     clearStops();
     const filteredStops = allStops.filter(stop => stop.busId === busId);
 
     if (filteredStops.length === 0) {
-      showNotification("⚠️ No route stops found for this bus!");
+      showNotification("⚠️ No stops found for this bus!");
       return;
     }
 
@@ -117,39 +131,21 @@
     map.fitBounds(group.getBounds().pad(0.2));
   }
 
-  // Restore last bus
+  // restore last bus
   window.addEventListener("load", () => {
     const savedBusId = localStorage.getItem("selectedBusId");
     if (savedBusId) {
       selectedBusId = savedBusId;
-      busSelect.value = savedBusId;
-      viewBtn.disabled = false;
-      showNotification("🚍 Tracking resumed for your last selected bus!");
-      showStopsForBus(savedBusId);
+      const savedBus = busList.find(b => b._id === savedBusId);
+      if (savedBus) {
+        document.getElementById("searchBus").value = savedBus.busNumber;
+        showStopsForBus(savedBusId);
+        showNotification(`🔄 Resumed tracking for <b>${savedBus.busNumber}</b>`);
+      }
     }
   });
 
-  // Bus selection
-  busSelect.onchange = (e) => {
-    selectedBusId = e.target.value.trim();
-    viewBtn.disabled = !selectedBusId;
-
-    if (marker) {
-      map.removeLayer(marker);
-      marker = null;
-    }
-    clearStops();
-  };
-
-  // View button
-  viewBtn.onclick = () => {
-    if (!selectedBusId) return alert("Select a bus first!");
-    localStorage.setItem("selectedBusId", selectedBusId);
-    showNotification("🚍 Tracking started!");
-    showStopsForBus(selectedBusId);
-  };
-
-  // Live location
+  // live tracking
   socket.on("receive-location", ({ busId, latitude, longitude }) => {
     if (selectedBusId !== String(busId)) return;
 
@@ -175,11 +171,10 @@
     );
 
     if (reachedStop) {
-      showNotification(`🚌 Bus has reached <b>${reachedStop.stopName}</b>!`);
+      showNotification(`🚌 Bus reached <b>${reachedStop.stopName}</b>`);
     }
   });
 
-  // Notification
   function showNotification(message) {
     const popup = document.createElement("div");
     popup.innerHTML = message;
@@ -205,69 +200,20 @@
 <% } %>
 
 <style>
-  /* bus icon */
-  .leaflet-marker-icon[src*="bus.png"] {
-    border-radius: 50%;
-    border: 3px solid white;
-    background: radial-gradient(circle at 30% 30%, #00b4d8, #0077b6);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-    padding: 4px;
-    object-fit: cover;
-    width: 46px !important;
-    height: 46px !important;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .leaflet-marker-icon[src*="bus.png"]:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5);
-  }
-
-  /* stop icon */
-  .leaflet-marker-icon[src*="stop.png"] {
-    border-radius: 50%;
-    border: 2px solid white;
-    background: radial-gradient(circle at 30% 30%, #ffd166, #fca311);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    padding: 3px;
-    width: 34px !important;
-    height: 34px !important;
-    object-fit: cover;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .leaflet-marker-icon[src*="stop.png"]:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-  }
-
-  /* Select style */
-  #busSelect:focus {
-    border-color: #00b4d8;
-    box-shadow: 0 0 8px rgba(0, 180, 216, 0.6);
-    transition: 0.3s ease;
-  }
-
-  #busSelect {
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(8px);
-    border-radius: 14px;
-    border: 1px solid #ddd;
-    padding: 10px;
-  }
-
-  /* Search bar style */
-  #searchBus:focus {
-    border-color: #00b4d8;
-    box-shadow: 0 0 8px rgba(0, 180, 216, 0.6);
-    transition: 0.3s ease;
-  }
-
   #searchBus {
     background: rgba(255, 255, 255, 0.65);
     backdrop-filter: blur(8px);
     border-radius: 14px;
     border: 1px solid #ddd;
     padding: 10px;
+  }
+
+  #searchBus:focus {
+    border-color: #00b4d8;
+    box-shadow: 0 0 8px rgba(0, 180, 216, 0.6);
+  }
+
+  .list-group-item:hover {
+    background: #e0f7ff;
   }
 </style>
