@@ -37,141 +37,196 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>  
 
 <script>  
-  const map = L.map("map").setView([15.8281, 78.0373], 12);  
-L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
-}).addTo(map);
+  const map = L.map("map").setView([15.8281, 78.0373], 12);
 
-  const stopsElement = document.getElementById("map");  
-  const allStops = JSON.parse(stopsElement.dataset.stops || "[]");  
+  L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
 
-  const socket = io({ withCredentials: true });  
-  let selectedBusId = null;  
-  let marker = null;  
-  let stopMarkers = [];  
+  const stopsElement = document.getElementById("map");
+  const allStops = JSON.parse(stopsElement.dataset.stops || "[]");
 
-  const busSelect = document.getElementById("busSelect");  
-  const viewBtn = document.getElementById("viewBtn");  
+  const socket = io({ withCredentials: true });
 
-  // 🧹 Clear old stop markers  
-  function clearStops() {  
-    stopMarkers.forEach(m => map.removeLayer(m));  
-    stopMarkers = [];  
-  }  
+  let selectedBusId = null;
+  let marker = null;
+  let stopMarkers = [];
+  let routeLine = null;   // NEW polyline variable
 
-  // 🚏 Show stops for a selected bus  
-  function showStopsForBus(busId) {  
-    clearStops();  
-    const filteredStops = allStops.filter(stop => stop.busId === busId);  
+  const busSelect = document.getElementById("busSelect");
+  const viewBtn = document.getElementById("viewBtn");
 
-    if (filteredStops.length === 0) {  
-      showNotification("⚠️ No route stops found for this bus!");  
-      return;  
-    }  
+  // 🧹 Clear stop markers + polyline
+  function clearStops() {
+    stopMarkers.forEach(m => map.removeLayer(m));
+    stopMarkers = [];
 
-    filteredStops.forEach(stop => {  
-      const stopMarker = L.marker([stop.latitude, stop.longitude], {  
-        icon: L.icon({  
-          iconUrl: "/images/stop.png",  
-          iconSize: [30, 30],  
-          iconAnchor: [15, 30]  
-        })  
-      })  
-        .addTo(map)  
-        .bindPopup(`<b>${stop.stopName}</b>`);  
+    if (routeLine) {
+      map.removeLayer(routeLine);
+      routeLine = null;
+    }
+  }
 
-      stopMarkers.push(stopMarker);  
-    });  
+  // 🚏 Show stops + draw polyline
+  function showStopsForBus(busId) {
+    clearStops();
+    const filteredStops = allStops.filter(stop => stop.busId === busId);
 
-    const group = L.featureGroup(stopMarkers);  
-    map.fitBounds(group.getBounds().pad(0.2));  
-  }  
+    if (filteredStops.length === 0) {
+      showNotification("⚠️ No route stops found for this bus!");
+      return;
+    }
 
-  // 🧠 Restore last selected bus from localStorage  
-  window.addEventListener("load", () => {  
-    const savedBusId = localStorage.getItem("selectedBusId");  
-    if (savedBusId) {  
-      selectedBusId = savedBusId;  
-      busSelect.value = savedBusId;  
-      viewBtn.disabled = false;  
-      showNotification("🚍 Tracking resumed for your last selected bus!");  
-      showStopsForBus(savedBusId);  
-    }  
-  });  
+    // Sort stops by sequence if available
+    if (filteredStops[0].sequence !== undefined) {
+      filteredStops.sort((a, b) => a.sequence - b.sequence);
+    }
 
-  // 🚌 Bus selection  
-  busSelect.onchange = (e) => {  
-    selectedBusId = e.target.value.trim();  
-    viewBtn.disabled = !selectedBusId;  
+    const pathCoords = []; // For polyline
 
-    if (marker) {  
-      map.removeLayer(marker);  
-      marker = null;  
-    }  
-    clearStops();  
-  };  
+    filteredStops.forEach(stop => {
+      const stopMarker = L.marker([stop.latitude, stop.longitude], {
+        icon: L.icon({
+          iconUrl: "/images/stop.png",
+          iconSize: [30, 30],
+          iconAnchor: [15, 30]
+        })
+      })
+      .addTo(map)
+      .bindPopup(`<b>${stop.stopName}</b>`);
 
-  // 🔘 View button click  
-  viewBtn.onclick = () => {  
-    if (!selectedBusId) return alert("Select a bus first!");  
-    localStorage.setItem("selectedBusId", selectedBusId);  
-    showNotification("🚍 Tracking started!");  
-    showStopsForBus(selectedBusId);  
-  };  
+      stopMarkers.push(stopMarker);
+      pathCoords.push([stop.latitude, stop.longitude]);
+    });
 
-  // 🛰️ Live location updates  
-  socket.on("receive-location", ({ busId, latitude, longitude }) => {  
-    if (selectedBusId !== String(busId)) return;  
+    // 🟦 Add route polyline
+    routeLine = L.polyline(pathCoords, {
+      color: "#0077b6",
+      weight: 4,
+      opacity: 0.8
+    }).addTo(map);
 
-    if (!marker) {  
-      marker = L.marker([latitude, longitude], {  
-        icon: L.icon({  
-          iconUrl: "/images/bus.png",  
-          iconSize: [42, 42],  
-          iconAnchor: [20, 42],  
-        }),  
-      }).addTo(map);  
-    } else {  
-      marker.setLatLng([latitude, longitude]);  
-    }  
+    stopMarkers.push(routeLine);
 
-    map.setView([latitude, longitude], 15);  
+    const group = L.featureGroup(stopMarkers);
+    map.fitBounds(group.getBounds().pad(0.2));
+  }
 
-    const filteredStops = allStops.filter(stop => stop.busId === selectedBusId);  
-    const reachedStop = filteredStops.find(  
-      stop =>  
-        Math.abs(stop.latitude - latitude) < 0.0008 &&  
-        Math.abs(stop.longitude - longitude) < 0.0008  
-    );  
 
-    if (reachedStop) {  
-      showNotification(`🚌 Bus has reached <b>${reachedStop.stopName}</b>!`);  
-    }  
-  });  
+  // Restore last bus
+  window.addEventListener("load", () => {
+    const savedBusId = localStorage.getItem("selectedBusId");
+    if (savedBusId) {
+      selectedBusId = savedBusId;
+      busSelect.value = savedBusId;
+      viewBtn.disabled = false;
+      showNotification("🚍 Tracking resumed!");
+      showStopsForBus(savedBusId);
+    }
+  });
 
-  // 💬 Custom notification popup  
-  function showNotification(message) {  
-    const popup = document.createElement("div");  
-    popup.innerHTML = message;  
-    popup.style.position = "fixed";  
-    popup.style.bottom = "20px";  
-    popup.style.right = "20px";  
-    popup.style.background = "#00a5c6";  
-    popup.style.color = "white";  
-    popup.style.padding = "12px 18px";  
-    popup.style.borderRadius = "10px";  
-    popup.style.fontWeight = "500";  
-    popup.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";  
-    popup.style.zIndex = "9999";  
-    popup.style.transition = "opacity 0.5s ease";  
-    document.body.appendChild(popup);  
-    setTimeout(() => {  
-      popup.style.opacity = "0";  
-      setTimeout(() => popup.remove(), 500);  
-    }, 3000);  
-  }  
-</script>  
+  busSelect.onchange = (e) => {
+    selectedBusId = e.target.value.trim();
+    viewBtn.disabled = !selectedBusId;
+
+    if (marker) {
+      map.removeLayer(marker);
+      marker = null;
+    }
+    clearStops();
+  };
+
+  viewBtn.onclick = () => {
+    if (!selectedBusId) return alert("Select a bus first!");
+    localStorage.setItem("selectedBusId", selectedBusId);
+    showNotification("🚍 Tracking started!");
+    showStopsForBus(selectedBusId);
+  };
+
+
+  // ======================================================
+  // 🟦 NEW: Smooth Animation Function
+  // ======================================================
+  function animateBusMarker(marker, oldLatLng, newLatLng, duration = 1000) {
+    let startTime = performance.now();
+
+    function animate() {
+      let now = performance.now();
+      let progress = Math.min((now - startTime) / duration, 1);
+
+      let currentLat = oldLatLng.lat + (newLatLng.lat - oldLatLng.lat) * progress;
+      let currentLng = oldLatLng.lng + (newLatLng.lng - oldLatLng.lng) * progress;
+
+      marker.setLatLng([currentLat, currentLng]);
+
+      if (progress < 1) requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+
+  // ======================================================
+  // 🛰️ Updated Live Location Listener with Smooth Animation
+  // ======================================================
+  socket.on("receive-location", ({ busId, latitude, longitude }) => {
+    if (selectedBusId !== String(busId)) return;
+
+    if (!marker) {
+      marker = L.marker([latitude, longitude], {
+        icon: L.icon({
+          iconUrl: "/images/bus.png",
+          iconSize: [42, 42],
+          iconAnchor: [20, 42],
+        })
+      }).addTo(map);
+    } else {
+      const oldPos = marker.getLatLng();
+      const newPos = L.latLng(latitude, longitude);
+
+      animateBusMarker(marker, oldPos, newPos, 900);
+    }
+
+    map.setView([latitude, longitude], 15);
+
+    // Notify on reaching stop
+    const filteredStops = allStops.filter(stop => stop.busId === selectedBusId);
+    const reachedStop = filteredStops.find(
+      stop =>
+        Math.abs(stop.latitude - latitude) < 0.0008 &&
+        Math.abs(stop.longitude - longitude) < 0.0008
+    );
+
+    if (reachedStop) {
+      showNotification(`🚌 Bus reached <b>${reachedStop.stopName}</b>!`);
+    }
+  });
+
+
+  // 💬 Notification Popup
+  function showNotification(message) {
+    const popup = document.createElement("div");
+    popup.innerHTML = message;
+    popup.style.position = "fixed";
+    popup.style.bottom = "20px";
+    popup.style.right = "20px";
+    popup.style.background = "#00a5c6";
+    popup.style.color = "white";
+    popup.style.padding = "12px 18px";
+    popup.style.borderRadius = "10px";
+    popup.style.fontWeight = "500";
+    popup.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
+    popup.style.zIndex = "9999";
+    popup.style.transition = "opacity 0.5s ease";
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+      popup.style.opacity = "0";
+      setTimeout(() => popup.remove(), 500);
+    }, 3000);
+  }
+</script>
 <% } %>  
   <style>  
     .leaflet-marker-icon[src*="bus.png"] {  
