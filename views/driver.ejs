@@ -5,25 +5,98 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />  
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>  
-<script src="/socket.io/socket.io.js"></script>  <style>  
-  /* 🚌 Rounded Bus Icon */  
-  .leaflet-marker-icon[src*="bus.png"] {  
-    border-radius: 50%;  
-    border: 3px solid white;  
-    background: radial-gradient(circle at 30% 30%, #00b4d8, #0077b6);  
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);  
-    padding: 4px;  
-    object-fit: cover;  
-    width: 46px !important;  
-    height: 46px !important;  
-    transition: transform 0.3s ease, box-shadow 0.3s ease;  
-  }  
-  
-  .leaflet-marker-icon[src*="bus.png"]:hover {  
-    transform: scale(1.1);  
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5);  
-  }  
-</style>  <script>  
+<script src="/socket.io/socket.io.js"></script> 
+
+<style>  
+ /* Modern Page Title */
+  .title {
+    text-align: center;
+    margin-top: 15px;
+    font-weight: 700;
+    color: #0a4d68;
+    letter-spacing: 0.5px;
+  }
+
+  /* Map Outer Container */
+  .map-container {
+    margin-top: 20px;
+    border-radius: 18px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.45);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Map */
+  #map {
+    height: 430px;
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  /* Buttons Row */
+  .btn-row {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  /* Modern Buttons */
+  .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    transition: 0.25s;
+  }
+
+  .btn.start {
+    background: linear-gradient(135deg, #28a745, #3ecf5f);
+  }
+
+  .btn.start:hover {
+    transform: scale(1.05);
+  }
+
+  .btn.end {
+    background: linear-gradient(135deg, #d90429, #ef233c);
+  }
+
+  .btn.end:hover {
+    transform: scale(1.05);
+  }
+
+  /* Bus Icon Style */
+  .leaflet-marker-icon[src*="bus.png"] {
+    border-radius: 50%;
+    border: 3px solid white;
+    background: radial-gradient(circle at 30% 30%, #00b4d8, #0077b6);
+    padding: 4px;
+    width: 46px !important;
+    height: 46px !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    transition: transform .25s ease;
+  }
+
+  .leaflet-marker-icon[src*="bus.png"]:hover {
+    transform: scale(1.12);
+  }
+
+  /* Stop icon */
+  .leaflet-marker-icon[src*="stop.png"] {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
+</style>  
+
+<script>  
   const socket = io({ withCredentials: true });  
   const busId = "<%= assignedBus %>";  
   const stopsData = JSON.parse(document.getElementById("map").dataset.stops || "[]");  
