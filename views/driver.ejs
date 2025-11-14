@@ -1,7 +1,13 @@
-<h3>Driver Dashboard</h3>  <div id="map" data-stops='<%- JSON.stringify(stops || []) %>'  
+<h3>Driver Dashboard</h3> 
+
+<div id="map" data-stops='<%- JSON.stringify(stops || []) %>'  
   style="height: 400px; width: 100%; margin-top: 10px; border-radius: 12px; border: 1px solid #ccc;">  
-</div>  <button id="startBtn" class="btn btn-primary mt-3">Start Trip</button>
-<button id="endBtn" class="btn btn-danger mt-3">End Trip</button>
+</div>  
+
+<div class="btn-row">
+  <button id="startBtn" class="btn start">Start Trip</button>
+  <button id="endBtn" class="btn end">End Trip</button>
+</div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />  
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>  
