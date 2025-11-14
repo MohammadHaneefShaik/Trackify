@@ -1,33 +1,109 @@
-<h3>Driver Dashboard</h3>
+  <h2 class="title">Driver Dashboard</h2>
 
-<div id="map" data-stops='<%- JSON.stringify(stops || []) %>'
-  style="height: 400px; width: 100%; margin-top: 10px; border-radius: 12px; border: 1px solid #ccc;">
+<div class="map-container">
+  <div id="map" 
+    data-stops='<%- JSON.stringify(stops || []) %>'>
+  </div>
 </div>
 
-<button id="startBtn" class="btn btn-primary mt-3">Start Trip</button>
-<button id="endBtn" class="btn btn-danger mt-3">End Trip</button>
+<div class="btn-row">
+  <button id="startBtn" class="btn start">Start Trip</button>
+  <button id="endBtn" class="btn end">End Trip</button>
+</div>
 
+<!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<!-- Socket -->
 <script src="/socket.io/socket.io.js"></script>
 
 <style>
-  /* 🚌 Rounded Bus Icon */
+  /* Modern Page Title */
+  .title {
+    text-align: center;
+    margin-top: 15px;
+    font-weight: 700;
+    color: #0a4d68;
+    letter-spacing: 0.5px;
+  }
+
+  /* Map Outer Container */
+  .map-container {
+    margin-top: 20px;
+    border-radius: 18px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.45);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Map */
+  #map {
+    height: 430px;
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  /* Buttons Row */
+  .btn-row {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  /* Modern Buttons */
+  .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    transition: 0.25s;
+  }
+
+  .btn.start {
+    background: linear-gradient(135deg, #28a745, #3ecf5f);
+  }
+
+  .btn.start:hover {
+    transform: scale(1.05);
+  }
+
+  .btn.end {
+    background: linear-gradient(135deg, #d90429, #ef233c);
+  }
+
+  .btn.end:hover {
+    transform: scale(1.05);
+  }
+
+  /* Bus Icon Style */
   .leaflet-marker-icon[src*="bus.png"] {
     border-radius: 50%;
     border: 3px solid white;
     background: radial-gradient(circle at 30% 30%, #00b4d8, #0077b6);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     padding: 4px;
-    object-fit: cover;
     width: 46px !important;
     height: 46px !important;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+    transition: transform .25s ease;
   }
 
   .leaflet-marker-icon[src*="bus.png"]:hover {
-    transform: scale(1.1);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5);
+    transform: scale(1.12);
+  }
+
+  /* Stop icon */
+  .leaflet-marker-icon[src*="stop.png"] {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
   }
 </style>
 
@@ -41,7 +117,7 @@
   }
 
   // Initialize Map
-  const map = L.map("map").setView([15.8281, 78.0373], 12);
+  const map = L.map("map").setView([15.8281, 78.0373], 13);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
   const busIcon = L.icon({
@@ -58,20 +134,21 @@
 
   let marker, watchId;
 
-  // 🛑 Show all stops for this bus
+  // Show all stops
   if (stopsData.length) {
     stopsData.forEach(stop => {
       L.marker([stop.latitude, stop.longitude], { icon: stopIcon })
         .addTo(map)
         .bindPopup(`<b>${stop.stopName}</b>`);
     });
+
     const group = L.featureGroup(
       stopsData.map(s => L.marker([s.latitude, s.longitude]))
     );
     map.fitBounds(group.getBounds().pad(0.2));
   }
 
-  // 🧭 Start tracking
+  // Start Trip
   document.getElementById("startBtn").onclick = () => {
     if (!navigator.geolocation) {
       alert("❌ GPS not supported by your browser");
@@ -80,8 +157,7 @@
 
     watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+        const { latitude: lat, longitude: lng } = pos.coords;
 
         socket.emit("send-location", { busId, latitude: lat, longitude: lng });
 
@@ -93,15 +169,15 @@
 
         map.setView([lat, lng]);
       },
-      (err) => alert("GPS error: " + err.message),
+      (err) => alert("GPS Error: " + err.message),
       { enableHighAccuracy: true, maximumAge: 0 }
     );
   };
 
-  // 🛑 End trip
+  // End Trip
   document.getElementById("endBtn").onclick = () => {
     if (watchId) navigator.geolocation.clearWatch(watchId);
-    alert("🛑 Trip Ended — tracking stopped");
+    alert("🛑 Trip Ended — Tracking Stopped");
     socket.disconnect();
   };
 </script>
