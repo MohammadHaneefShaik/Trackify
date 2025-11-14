@@ -1,5 +1,7 @@
 <head>
 <script src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slim-select/dist/slimselect.css">
+<script src="https://cdn.jsdelivr.net/npm/slim-select/dist/slimselect.min.js"></script>
 </head>
 
 <% if (!user) { %>
@@ -210,6 +212,14 @@
       setTimeout(() => msg.remove(), 500);
     }, 2700);
   }
+
+
+  new SlimSelect({
+    select: '#busSelect',
+    placeholder: 'Search Bus...',
+    allowDeselect: true
+  });
+
 </script>
 
 <!-- BUS & STOP ICON UI -->
@@ -233,6 +243,18 @@
     height: 34px !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
+#busSelect:focus {
+  border-color: #00b4d8;
+  box-shadow: 0 0 8px rgba(0, 180, 216, 0.6);
+  transition: 0.3s ease;
+}
+#busSelect {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+  border: 1px solid #ddd;
+  padding: 10px;
+}
 </style>
 
 <% } %>
