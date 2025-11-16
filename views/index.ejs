@@ -128,32 +128,41 @@
       clearStops();
     };
 
-    /* View button */
-    viewBtn.onclick = () => {
-      if (!selectedBusId) return alert("Select a bus first!");
+/* View button */
+viewBtn.onclick = () => {
+  if (!selectedBusId) return alert("Select a bus first!");
 
-      localStorage.setItem("selectedBusId", selectedBusId);
-      showNotification("🚍 Tracking started!");
-      showStopsForBus(selectedBusId);
-    };
+  localStorage.setItem("selectedBusId", selectedBusId);
+  showNotification("🚍 Tracking started!");
+  showStopsForBus(selectedBusId);
 
-    /* Live location updates */
-    socket.on("receive-location", ({ busId, latitude, longitude }) => {
-      if (selectedBusId !== String(busId)) return;
+  // ⭐ Center map on latest bus location immediately
+  if (window.lastBusLocation) {
+    map.setView([window.lastBusLocation.lat, window.lastBusLocation.lng], 15);
+  }
+};
 
-      if (!marker) {
-        marker = L.marker([latitude, longitude], {
-          icon: L.icon({
-            iconUrl: "/images/bus.png",
-            iconSize: [42, 42],
-            iconAnchor: [20, 42]
-          })
-        }).addTo(map);
-      } else {
-        marker.setLatLng([latitude, longitude]);
-      }
+/* Live location updates */
+socket.on("receive-location", ({ busId, latitude, longitude }) => {
+  if (selectedBusId !== String(busId)) return;
 
-      map.setView([latitude, longitude], 15);
+  // ⭐ Store last known position
+  window.lastBusLocation = { lat: latitude, lng: longitude };
+
+  if (!marker) {
+    marker = L.marker([latitude, longitude], {
+      icon: L.icon({
+        iconUrl: "/images/bus.png",
+        iconSize: [42, 42],
+        iconAnchor: [20, 42]
+      })
+    }).addTo(map);
+  } else {
+    marker.setLatLng([latitude, longitude]);
+  }
+
+  map.setView([latitude, longitude], 15);
+});
 
       const filteredStops = allStops.filter(stop => stop.busId === selectedBusId);
 
