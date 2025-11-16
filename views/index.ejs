@@ -163,7 +163,7 @@ socket.on("receive-location", ({ busId, latitude, longitude }) => {
         marker.setLatLng([latitude, longitude]);
     }
 
-    map.setView([latitude, longitude], 18);
+    map.setView([latitude, longitude]);
 
     // ✅ Stop detection inside socket listener
     const filteredStops = allStops.filter(stop => stop.busId === selectedBusId);
