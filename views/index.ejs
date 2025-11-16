@@ -149,16 +149,8 @@ viewBtn.onclick = () => {
 ----------------------------- */
 socket.on("receive-location", ({ busId, latitude, longitude }) => {
 
-    // Update only if this bus is selected
     if (selectedBusId !== String(busId)) return;
 
-    // Ensure map exists
-    if (!map) {
-        console.error("❌ Map is not initialized yet!");
-        return;
-    }
-
-    // Create marker if first update
     if (!marker) {
         marker = L.marker([latitude, longitude], {
             icon: L.icon({
@@ -168,25 +160,24 @@ socket.on("receive-location", ({ busId, latitude, longitude }) => {
             })
         }).addTo(map);
     } else {
-        // Smooth movement for real-time tracking
         marker.setLatLng([latitude, longitude]);
     }
 
-       map.setView([latitude,latitude],15);
-});
+    map.setView([latitude, longitude], 18);
 
+    // ✅ Stop detection inside socket listener
+    const filteredStops = allStops.filter(stop => stop.busId === selectedBusId);
 
-      const filteredStops = allStops.filter(stop => stop.busId === selectedBusId);
-
-      const reachedStop = filteredStops.find(stop =>
+    const reachedStop = filteredStops.find(stop =>
         Math.abs(stop.latitude - latitude) < 0.0008 &&
         Math.abs(stop.longitude - longitude) < 0.0008
-      );
+    );
 
-      if (reachedStop) {
+    if (reachedStop) {
         showNotification(`🚌 Bus has reached <b>${reachedStop.stopName}</b>!`);
-      }
-    });
+    }
+
+});
 
     /* Notification Popup */
     function showNotification(message) {
