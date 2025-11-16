@@ -128,41 +128,57 @@
       clearStops();
     };
 
-/* View button */
+/* ----------------------------
+   VIEW BUTTON → SHOW ROUTE
+----------------------------- */
 viewBtn.onclick = () => {
-  if (!selectedBusId) return alert("Select a bus first!");
+    if (!selectedBusId) return alert("Select a bus first!");
 
-  localStorage.setItem("selectedBusId", selectedBusId);
-  showNotification("🚍 Tracking started!");
-  showStopsForBus(selectedBusId);
+    // save selected bus for page reload
+    localStorage.setItem("selectedBusId", selectedBusId);
 
-  // ⭐ Center map on latest bus location immediately
-  if (window.lastBusLocation) {
-    map.setView([window.lastBusLocation.lat, window.lastBusLocation.lng], 15);
-  }
+    showNotification("🚍 Tracking started!");
+
+    // load stops for this bus
+    showStopsForBus(selectedBusId);
 };
 
-/* Live location updates */
+
+/* ----------------------------
+   LIVE LOCATION UPDATES
+----------------------------- */
 socket.on("receive-location", ({ busId, latitude, longitude }) => {
-  if (selectedBusId !== String(busId)) return;
 
-  // ⭐ Store last known position
-  window.lastBusLocation = { lat: latitude, lng: longitude };
+    // Update only if this bus is selected
+    if (selectedBusId !== String(busId)) return;
 
-  if (!marker) {
-    marker = L.marker([latitude, longitude], {
-      icon: L.icon({
-        iconUrl: "/images/bus.png",
-        iconSize: [42, 42],
-        iconAnchor: [20, 42]
-      })
-    }).addTo(map);
-  } else {
-    marker.setLatLng([latitude, longitude]);
-  }
+    // Ensure map exists
+    if (!map) {
+        console.error("❌ Map is not initialized yet!");
+        return;
+    }
 
-  map.setView([latitude, longitude], 15);
+    // Create marker if first update
+    if (!marker) {
+        marker = L.marker([latitude, longitude], {
+            icon: L.icon({
+                iconUrl: "/images/bus.png",
+                iconSize: [42, 42],
+                iconAnchor: [20, 42]
+            })
+        }).addTo(map);
+    } else {
+        // Smooth movement for real-time tracking
+        marker.setLatLng([latitude, longitude]);
+    }
+
+    // Center map on bus
+       map.flyTo([latitude, longitude], 16, {
+      animate: true,
+      duration: 0.8
+    });
 });
+
 
       const filteredStops = allStops.filter(stop => stop.busId === selectedBusId);
 
