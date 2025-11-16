@@ -160,7 +160,7 @@ socket.on("receive-location", ({ busId, latitude, longitude }) => {
             })
         }).addTo(map);
     } else {
-        marker.setLatLng([latitude, longitude]);
+        marker.setLatLng([latitude, longitude],12);
     }
 
     map.setView([latitude, longitude]);
