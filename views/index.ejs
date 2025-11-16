@@ -172,11 +172,7 @@ socket.on("receive-location", ({ busId, latitude, longitude }) => {
         marker.setLatLng([latitude, longitude]);
     }
 
-    // Center map on bus
-       map.flyTo([latitude, longitude], 16, {
-      animate: true,
-      duration: 0.8
-    });
+       map.setView([latitude,latitude],15);
 });
 
 
