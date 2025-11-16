@@ -101,79 +101,167 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.25);
   }
 </style>  
-
 <script>  
+
   const socket = io({ withCredentials: true });  
   const busId = "<%= assignedBus %>";  
   const stopsData = JSON.parse(document.getElementById("map").dataset.stops || "[]");  
-  
+
   if (!busId) {  
     alert("❌ No bus assigned. Contact Admin.");  
   }  
-  
-  // Initialize Map  
+
+  // -------------------------------
+  // 🟩 WAKE LOCK + BRIGHTNESS BOOST
+  // -------------------------------
+  let wakeLock = null;
+  let brightnessOverlay = null;
+
+  // Request wake lock
+  async function requestWakeLock() {
+    try {
+      wakeLock = await navigator.wakeLock.request("screen");
+      console.log("WakeLock activated");
+
+      // Auto-reacquire if released
+      wakeLock.addEventListener("release", () => {
+        console.log("WakeLock lost → Reacquiring...");
+        requestWakeLock();
+      });
+    } catch (err) {
+      console.log("WakeLock Error:", err);
+    }
+  }
+
+  // Reacquire wake lock when the tab becomes visible
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      requestWakeLock();
+    }
+  });
+
+  // Brightness boost (visual overlay)
+  function boostBrightness() {
+    brightnessOverlay = document.createElement("div");
+    brightnessOverlay.style.cssText = `
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background: rgba(255,255,255,0.15);
+      pointer-events:none;
+      z-index: 999999;
+    `;
+    document.body.appendChild(brightnessOverlay);
+  }
+
+  function removeBrightnessBoost() {
+    if (brightnessOverlay) brightnessOverlay.remove();
+  }
+
+  // -------------------------------
+  // 🟩 NOTIFICATION “Tracking Active”
+  // -------------------------------
+  async function showTrackingNotification() {
+    if (!("Notification" in window)) return;
+
+    if (Notification.permission !== "granted") {
+      await Notification.requestPermission();
+    }
+
+    if (Notification.permission === "granted") {
+      new Notification("🚌 Tracking Active", {
+        body: "Your location is updating live.",
+        icon: "/images/bus.png"
+      });
+    }
+  }
+
+  // -------------------------------
+  // 🟦 MAP SETUP
+  // -------------------------------
   const map = L.map("map").setView([15.8281, 78.0373], 12);  
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);  
-  
+
   const busIcon = L.icon({  
     iconUrl: "/images/bus.png",  
     iconSize: [45, 45],  
     iconAnchor: [22, 22],  
   });  
-  
+
   const stopIcon = L.icon({  
     iconUrl: "/images/stop.png",  
     iconSize: [28, 28],  
     iconAnchor: [14, 28],  
   });  
-  
+
   let marker, watchId;  
-  
-  // 🛑 Show all stops for this bus  
+
+  // Show stops on the map
   if (stopsData.length) {  
     stopsData.forEach(stop => {  
       L.marker([stop.latitude, stop.longitude], { icon: stopIcon })  
         .addTo(map)  
         .bindPopup(`<b>${stop.stopName}</b>`);  
     });  
-    const group = L.featureGroup(  
-      stopsData.map(s => L.marker([s.latitude, s.longitude]))  
+
+    const group = L.featureGroup(
+      stopsData.map(s => L.marker([s.latitude, s.longitude]))
     );  
     map.fitBounds(group.getBounds().pad(0.2));  
   }  
-  
-  // 🧭 Start tracking  
-  document.getElementById("startBtn").onclick = () => {  
+
+  // -------------------------------
+  // 🟩 START TRIP
+  // -------------------------------
+  document.getElementById("startBtn").onclick = async () => {  
+    
     if (!navigator.geolocation) {  
       alert("❌ GPS not supported by your browser");  
       return;  
     }  
-  
+
+    // 1. Wake Lock ON
+    await requestWakeLock();
+
+    // 2. Brightness Boost
+    boostBrightness();
+
+    // 3. Android Notification
+    showTrackingNotification();
+
+    // 4. Start GPS Tracking
     watchId = navigator.geolocation.watchPosition(  
       (pos) => {  
         const lat = pos.coords.latitude;  
         const lng = pos.coords.longitude;  
-  
+
         socket.emit("send-location", { busId, latitude: lat, longitude: lng });  
-  
+
         if (!marker) {  
           marker = L.marker([lat, lng], { icon: busIcon }).addTo(map);  
         } else {  
           marker.setLatLng([lat, lng]);  
         }  
-  
+
         map.setView([lat, lng]);  
       },  
       (err) => alert("GPS error: " + err.message),  
       { enableHighAccuracy: true, maximumAge: 0 }  
     );  
   };  
-  
-  // 🛑 End trip  
+
+  // -------------------------------
+  // 🟥 END TRIP
+  // -------------------------------
   document.getElementById("endBtn").onclick = () => {  
+
+    if (wakeLock) wakeLock.release();
+    removeBrightnessBoost();
+
     if (watchId) navigator.geolocation.clearWatch(watchId);  
+
     alert("🛑 Trip Ended — tracking stopped");  
     socket.disconnect();  
   };  
-</script> 
 
+</script>
