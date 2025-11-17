@@ -50,7 +50,6 @@
     const map = L.map("map").setView([15.8281, 78.0373], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-      maxZoom: 19,
       attribution: '&copy; OpenStreetMap'
     }).addTo(map);
 
@@ -163,7 +162,7 @@ socket.on("receive-location", ({ busId, latitude, longitude }) => {
         marker.setLatLng([latitude, longitude],12);
     }
 
-    map.setView([latitude, longitude],17);
+    map.setView([latitude, longitude],15);
 
     // ✅ Stop detection inside socket listener
     const filteredStops = allStops.filter(stop => stop.busId === selectedBusId);
