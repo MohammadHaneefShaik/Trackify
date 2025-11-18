@@ -44,24 +44,34 @@ exports.restrictTo = (roles = []) => {
   };
 };
 
-exports.alreadyLoggedIn = async (req, res, next) {
+exports.alreadyLoggedIn = async (req, res, next) => {
   try {
     const token = req.cookies?.token;
-    if (!token) return next(); // No token → allow login page
 
-    // Verify token
+    if (!token) {
+      return next(); // no token → allow login page
+    }
+
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    const user = await User.findById(decoded._id);
-    if (!user) return next(); // Token invalid → show login page
+    if (!decoded) {
+      return next();
+    }
 
-    // Auto redirect based on role
-    if (user.role === "DRIVER") return res.redirect("/driver/dashboard");
-    if (user.role === "ADMIN") return res.redirect("/admin/dashboard");
-    
+    // redirect based on role
+    if (decoded.role === "ADMIN") {
+      return res.redirect("/admin/dashboard");
+    }
+
+    if (decoded.role === "DRIVER") {
+      return res.redirect("/driver/dashboard");
+    }
+
     return res.redirect("/");
+
   } catch (err) {
-    return next(); // Token invalid → allow login page
+    return next(); // invalid token → allow login page
   }
 };
+
 
