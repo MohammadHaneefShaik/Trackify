@@ -3,7 +3,7 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET || "SUPER_SECRET_KEY";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
+const JWT_EXPIRES_IN =  "30d";
 
 const Bus = require('../models/Bus');
 
@@ -18,7 +18,7 @@ function createSendToken(user, res, redirectPath) {
   res.cookie("token", token, {
     httpOnly: true,
     sameSite: "lax",
-    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   });
 
   user.password = undefined;
