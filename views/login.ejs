@@ -1,10 +1,42 @@
-<form action="/auth/login" method="POST" class="card p-4 mx-auto shadow-sm" style="max-width: 400px; margin-top: 60px;">
+<form action="/auth/login" method="POST" class="card p-4 mx-auto shadow-sm" 
+      style="max-width: 400px; margin-top: 60px;">
+
   <h3 class="mb-4 text-center fw-semibold" style="color: #00a5c6;">Login</h3>
 
+  <!-- Email -->
   <input name="email" class="form-control mb-3" placeholder="Email" type="email" required />
-  <input name="password" type="password" class="form-control mb-3" placeholder="Password" required />
 
-  <button class="btn w-100 py-2" style="background-color: #00a5c6; color: #fff;">Login</button>
+  <!-- Password with Eye Icon -->
+  <div class="password-wrapper mb-3" style="position: relative;">
+    <input name="password" id="password" type="password" class="form-control" placeholder="Password" required />
+
+    <!-- Eye Icon -->
+    <span id="toggleEye" class="eye-icon"
+      style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer;">
+
+      <!-- Eye Open -->
+      <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+           stroke="#6c757d" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12S5 4 12 4s11 8 11 8-4 8-11 8S1 12 1 12z"/>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+
+      <!-- Eye Closed -->
+      <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+           stroke="#6c757d" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+           style="display:none;">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a19.8 19.8 0 0 1 5.06-6.94"/>
+        <path d="M1 1l22 22"/>
+        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>
+      </svg>
+
+    </span>
+  </div>
+
+  <!-- Login Button -->
+  <button class="btn w-100 py-2" style="background-color: #00a5c6; color: #fff;">
+    Login
+  </button>
 
   <div class="text-center mt-3">
     <p class="mb-1 text-muted">Don’t have an account?</p>
@@ -13,3 +45,22 @@
     </a>
   </div>
 </form>
+
+<script>
+  const password = document.getElementById("password");
+  const toggleEye = document.getElementById("toggleEye");
+  const eyeOpen = document.getElementById("eyeOpen");
+  const eyeClosed = document.getElementById("eyeClosed");
+
+  toggleEye.onclick = () => {
+    if (password.type === "password") {
+      password.type = "text";
+      eyeOpen.style.display = "none";
+      eyeClosed.style.display = "block";
+    } else {
+      password.type = "password";
+      eyeOpen.style.display = "block";
+      eyeClosed.style.display = "none";
+    }
+  };
+</script>
